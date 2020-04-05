@@ -1,3 +1,14 @@
+-- | Like Data.Array but keeps unique values. Inspired by haskell's Data.Set.Ordered
+-- |
+-- | Some of Data.Array's functions are not included because they don't make
+-- | sense when there are already unique values:
+-- | nub, nubEq, nubBy, replicate
+-- |
+-- | For documentation of functions look in Data.Array
+-- |
+-- | Help is appreciated for implementing the following functions and instances:
+-- | * Functions: some, many, concatMap, group, group', groupBy
+-- | * Instances: Functor, Apply, Bind, Traversable
 module Data.Set.Ordered
   ( OSet
   , fromFoldable
@@ -79,37 +90,34 @@ module Data.Set.Ordered
   , module Exports
   ) where
 
--- Data.Array has these functions, which don't make sense to have here:
--- nub, nubBy, replicate
+-- Exports
+import Data.Foldable (foldl, foldr, foldMap, fold, intercalate, elem, notElem, find, findMap, any, all) as Exports
+import Data.Traversable (scanl, scanr) as Exports
 
--- Todo:
--- some, many, concatMap, group, group', groupBy
--- Functor, Apply, Bind, Traversable
+-- unused for now
+-- import Control.Alternative (class Alternative)
+-- import Control.Apply (class Apply, apply)
+-- import Control.Bind (class Bind)
+-- import Control.Lazy (class Lazy)
+-- import Data.Array.NonEmpty (NonEmptyArray)
+-- import Data.NonEmpty (NonEmpty)
+-- import Data.Traversable (class Traversable, traverse, sequence)
 
-import Control.Alternative (class Alternative)
 import Control.Applicative (class Applicative)
-import Control.Apply (class Apply, apply)
-import Control.Bind (class Bind)
-import Control.Lazy (class Lazy)
 import Control.Monad (class Monad)
 import Control.Monad.Rec.Class (class MonadRec)
 import Data.Array as A
 import Data.Eq (class Eq)
 import Data.Foldable (class Foldable, foldr, foldl, foldMap)
-import Data.Foldable (foldl, foldr, foldMap, fold, intercalate, elem, notElem, find, findMap, any, all) as Exports
 import Data.Functor (class Functor, map)
 import Data.Maybe (Maybe)
 import Data.NaturalTransformation (type (~>))
-import Data.NonEmpty (NonEmpty)
 import Data.Ord (class Ord)
 import Data.Ordering (Ordering)
 import Data.Semigroup (class Semigroup, append)
-import Data.Traversable (class Traversable, traverse, sequence)
-import Data.Traversable (scanl, scanr) as Exports
 import Data.Tuple (Tuple(Tuple))
 import Data.Unfoldable (class Unfoldable)
 import Prelude (($), (<<<), (<$>))
-import Data.Array.NonEmpty (NonEmptyArray)
 
 newtype OSet a = OSet (Array a)
 
@@ -139,8 +147,6 @@ instance foldableOSet :: Foldable OSet where
 -- instance traversableOSet :: Traversable (OSet a) where
 --   traverse f (OSet xs) = OSet <$> traverse f xs
 --   sequence (OSet xs) = OSet <$> sequence xs
-
--- derive newtype instance lazyOSet :: Lazy (OSet Array)
 
 fromFoldable :: forall f. Foldable f => f ~> OSet
 fromFoldable = OSet <<< A.fromFoldable
@@ -355,4 +361,3 @@ foldRecM f x (OSet ys) = A.foldRecM f x ys
 
 unsafeIndex :: forall a. Partial => OSet a -> Int -> a
 unsafeIndex (OSet xs) p = A.unsafeIndex xs p
-
