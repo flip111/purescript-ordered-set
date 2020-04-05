@@ -109,7 +109,7 @@ import Control.Monad.Rec.Class (class MonadRec)
 import Data.Array as A
 import Data.Eq (class Eq)
 import Data.Foldable (class Foldable, foldr, foldl, foldMap)
-import Data.Functor (class Functor, map)
+import Data.Functor (map) -- class Functor
 import Data.Maybe (Maybe)
 import Data.NaturalTransformation (type (~>))
 import Data.Ord (class Ord)
@@ -202,11 +202,11 @@ init (OSet xs) = OSet <$> A.init xs
 
 uncons :: forall a. OSet a -> Maybe { head :: a, tail :: OSet a }
 uncons (OSet xs) = map f $ A.uncons xs
-  where f { head, tail } = { head: head, tail: OSet tail }
+  where f { head: h, tail: t } = { head: h, tail: OSet t }
 
 unsnoc :: forall a. OSet a -> Maybe { init :: OSet a, last :: a }
 unsnoc (OSet xs) = map f $ A.unsnoc xs
-  where f { init, last } = { init: OSet init, last: last}
+  where f { init: i, last: l } = { init: OSet i, last: l}
 
 index :: forall a. OSet a -> Int -> Maybe a
 index (OSet xs) b = A.index xs b
@@ -305,7 +305,7 @@ dropWhile f (OSet xs) = OSet $ A.dropWhile f xs
 
 span :: forall a. (a -> Boolean) -> OSet a -> { init :: OSet a, rest :: OSet a }
 span f (OSet xs) = g $ A.span f xs
-  where g {init, rest} = {init: OSet init, rest: OSet rest}
+  where g {init: i, rest: r} = {init: OSet i, rest: OSet r}
 
 -- group :: forall a. Eq a => OSet a -> OSet (NonEmpty OSet a)
 -- group (OSet xs) = OSet $ OSet <$> A.group xs
