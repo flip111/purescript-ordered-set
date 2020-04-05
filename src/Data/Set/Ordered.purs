@@ -7,13 +7,24 @@
 -- | For documentation of functions look in Data.Array
 -- |
 -- | Help is appreciated for implementing the following functions and instances:
--- | * Functions: some, many, concatMap, group, group', groupBy
--- | * Instances: Functor, Apply, Bind, Traversable
+-- | * Functions: some, many, concatMap, group, group', groupBy, findMin, findMax, map
+-- | * Instances: Apply, Bind, Traversable, Show, Ord, Monoid
+-- |
+-- | Undecided is if the following instances should be implemented: Eq1, Ord1
 module Data.Set.Ordered
   ( OSet
+
   , fromFoldable
   , toUnfoldable
+
+  , empty
+  , isEmpty
   , singleton
+
+  , subset
+  , properSubset
+  -- , map
+
   , (..), range
   -- , some
   -- , many
@@ -109,7 +120,7 @@ import Control.Monad.Rec.Class (class MonadRec)
 import Data.Array as A
 import Data.Eq (class Eq)
 import Data.Foldable (class Foldable, foldr, foldl, foldMap)
-import Data.Functor (map) -- class Functor
+import Data.Functor as F -- class Functor
 import Data.Maybe (Maybe)
 import Data.NaturalTransformation (type (~>))
 import Data.Ord (class Ord)
@@ -117,13 +128,14 @@ import Data.Ordering (Ordering)
 import Data.Semigroup (class Semigroup, append)
 import Data.Tuple (Tuple(Tuple))
 import Data.Unfoldable (class Unfoldable)
-import Prelude (($), (<<<), (<$>))
+import Prelude (($), (<<<), (<$>), (&&), (==), (/=))
 
 newtype OSet a = OSet (Array a)
 
--- https://pursuit.purescript.org/packages/purescript-prelude/4.1.1/docs/Data.Functor
--- instance functorOSet :: Functor (OSet a) where
---   map f (OSet xs) = OSet $ A.nubEq $ map f xs
+-- Functor OSet should not be implemented (see comment of map function below)
+
+instance eqSet :: Eq a => Eq (OSet a) where
+  eq (OSet m1) (OSet m2) = m1 == m2
 
 -- https://pursuit.purescript.org/packages/purescript-prelude/4.1.1/docs/Control.Apply
 -- instance applyOSet :: Eq a => Apply (OSet a) where
@@ -154,8 +166,34 @@ fromFoldable = OSet <<< A.fromFoldable
 toUnfoldable :: forall f. Unfoldable f => OSet ~> f
 toUnfoldable (OSet xs) = A.toUnfoldable xs
 
+empty :: forall a. OSet a
+empty = OSet []
+
+isEmpty :: forall a. Eq a => OSet a -> Boolean
+isEmpty (OSet xs) = xs == []
+
 singleton :: forall a. a -> OSet a
 singleton a = OSet [a]
+
+-- | Maps over the values in a set.
+-- |
+-- | This operation is not structure-preserving for sets, so is not a valid Functor. An example case: mapping const x over a set with n > 0 elements will result in a set with one element.
+-- https://github.com/purescript/purescript-ordered-collections/blob/v1.6.1/src/Data/Set.purs#L107-L107
+-- map :: forall a b. (a -> b) -> Set a -> Set b
+-- map f = foldl (\m a -> insert (f a) m) empty
+
+-- https://github.com/purescript/purescript-ordered-collections/blob/v1.6.1/src/Data/Set.purs#L132-L132
+-- findMin :: forall a. Set a -> Maybe a
+-- findMin (Set m) = Prelude.map _.key (M.findMin m)
+
+-- findMax :: forall a. Set a -> Maybe a
+-- findMax (Set m) = Prelude.map _.key (M.findMax m)
+
+subset :: forall a. Eq a => OSet a -> OSet a -> Boolean
+subset s1 s2 = isEmpty $ s1 `difference` s2
+
+properSubset :: forall a. Eq a => OSet a -> OSet a -> Boolean
+properSubset s1 s2 = subset s1 s2 && (s1 /= s2)
 
 range :: Int -> Int -> OSet Int
 range a b = OSet $ A.range a b
@@ -201,11 +239,11 @@ init :: forall a. OSet a -> Maybe (OSet a)
 init (OSet xs) = OSet <$> A.init xs
 
 uncons :: forall a. OSet a -> Maybe { head :: a, tail :: OSet a }
-uncons (OSet xs) = map f $ A.uncons xs
+uncons (OSet xs) = F.map f $ A.uncons xs
   where f { head: h, tail: t } = { head: h, tail: OSet t }
 
 unsnoc :: forall a. OSet a -> Maybe { init :: OSet a, last :: a }
-unsnoc (OSet xs) = map f $ A.unsnoc xs
+unsnoc (OSet xs) = F.map f $ A.unsnoc xs
   where f { init: i, last: l } = { init: OSet i, last: l}
 
 index :: forall a. OSet a -> Int -> Maybe a
@@ -226,30 +264,30 @@ findLastIndex :: forall a. (a -> Boolean) -> OSet a -> Maybe Int
 findLastIndex cmp (OSet xs) = A.findLastIndex cmp xs
 
 insertAt :: forall a. Eq a => Int -> a -> OSet a -> Maybe (OSet a)
-insertAt p x (OSet xs) = map f $ A.insertAt p x xs
+insertAt p x (OSet xs) = F.map f $ A.insertAt p x xs
   where f xs' = if A.elem x xs then OSet xs else OSet xs'
 
 deleteAt :: forall a. Int -> OSet a -> Maybe (OSet a)
 deleteAt p (OSet xs) = OSet <$> A.deleteAt p xs
 
 updateAt :: forall a. Eq a => Int -> a -> OSet a -> Maybe (OSet a)
-updateAt p x (OSet xs) = map f $ A.updateAt p x xs
+updateAt p x (OSet xs) = F.map f $ A.updateAt p x xs
   where f xs' = if A.elem x xs then OSet xs else OSet xs'
 
 updateAtIndices :: forall t a. Eq a => Foldable t => t (Tuple Int a) -> OSet a -> OSet a
 updateAtIndices us (OSet xs) = OSet $ A.nubEq $ A.updateAtIndices us xs
 
 modifyAt :: forall a. Eq a => Int -> (a -> a) -> OSet a -> Maybe (OSet a)
-modifyAt p f (OSet xs) = map (OSet <<< A.nubEq) $ A.modifyAt p f xs
+modifyAt p f (OSet xs) = F.map (OSet <<< A.nubEq) $ A.modifyAt p f xs
 
 alterAt :: forall a. Eq a => Int -> (a -> Maybe a) -> OSet a -> Maybe (OSet a)
-alterAt p f (OSet xs) = map (OSet <<< A.nubEq) $ A.alterAt p f xs
+alterAt p f (OSet xs) = F.map (OSet <<< A.nubEq) $ A.alterAt p f xs
 
 reverse :: forall a. OSet a -> OSet a
 reverse (OSet xs) = OSet $ A.reverse xs
 
 concat :: forall a. Eq a => OSet (OSet a) -> OSet a
-concat (OSet xs) = OSet $ A.nubEq $ A.concat $ map (\(OSet xs') -> xs') xs
+concat (OSet xs) = OSet $ A.nubEq $ A.concat $ F.map (\(OSet xs') -> xs') xs
 
 -- concatMap :: forall a b. (a -> OSet b) -> OSet a -> OSet b
 -- concatMap f (OSet xs) = OSet $ A.concatMap f xs
