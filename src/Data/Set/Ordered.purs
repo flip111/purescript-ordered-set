@@ -9,8 +9,6 @@
 -- | Help is appreciated for implementing the following functions and instances:
 -- | * Functions: some, many, concatMap, group, group', groupBy, findMin, findMax, map
 -- | * Instances: Apply, Bind, Traversable, Show, Ord, Monoid
--- |
--- | Undecided is if the following instances should be implemented: Eq1, Ord1
 module Data.Set.Ordered
   ( OSet
 
@@ -23,7 +21,7 @@ module Data.Set.Ordered
 
   , subset
   , properSubset
-  -- , map
+  , map
 
   , (..), range
   -- , some
@@ -82,7 +80,8 @@ module Data.Set.Ordered
   , union
   , unionBy
   , delete
-  , deleteBy
+  -- , deleteBy -- let's not export this lame method
+  , deleteWith
 
   , (\\), difference
   , intersect
@@ -121,13 +120,14 @@ import Data.Array as A
 import Data.Eq (class Eq)
 import Data.Foldable (class Foldable, foldr, foldl, foldMap)
 import Data.Functor as F -- class Functor
-import Data.Maybe (Maybe)
+import Data.Maybe (Maybe, maybe, fromJust)
 import Data.NaturalTransformation (type (~>))
 import Data.Ord (class Ord)
 import Data.Ordering (Ordering)
 import Data.Semigroup (class Semigroup, append)
 import Data.Tuple (Tuple(Tuple))
 import Data.Unfoldable (class Unfoldable)
+import Partial.Unsafe (unsafePartial)
 import Prelude (($), (<<<), (<$>), (&&), (==), (/=))
 
 newtype OSet a = OSet (Array a)
@@ -179,8 +179,8 @@ singleton a = OSet [a]
 -- |
 -- | This operation is not structure-preserving for sets, so is not a valid Functor. An example case: mapping const x over a set with n > 0 elements will result in a set with one element.
 -- https://github.com/purescript/purescript-ordered-collections/blob/v1.6.1/src/Data/Set.purs#L107-L107
--- map :: forall a b. (a -> b) -> Set a -> Set b
--- map f = foldl (\m a -> insert (f a) m) empty
+map :: forall a b. Ord b => (a -> b) -> OSet a -> OSet b
+map f = foldl (\m a -> insert (f a) m) empty
 
 -- https://github.com/purescript/purescript-ordered-collections/blob/v1.6.1/src/Data/Set.purs#L132-L132
 -- findMin :: forall a. Set a -> Maybe a
@@ -363,8 +363,16 @@ unionBy f (OSet xs) (OSet ys) = OSet $ A.nubEq $ A.unionBy f xs ys
 delete :: forall a. Eq a => a -> OSet a -> OSet a
 delete x (OSet ys) = OSet $ A.delete x ys
 
-deleteBy :: forall a. (a -> a -> Boolean) -> a -> OSet a -> OSet a
-deleteBy f x (OSet ys) = OSet $ A.deleteBy f x ys
+-- deleteBy :: forall a. (a -> a -> Boolean) -> a -> OSet a -> OSet a
+-- deleteBy f x (OSet ys) = OSet $ A.deleteBy f x ys
+
+-- deleteBy :: forall a. (a -> a -> Boolean) -> a -> OSet a -> OSet a
+-- deleteBy f x s = deleteWith (f x) s
+
+-- | Delete first element matching the predicate.
+deleteWith :: forall a. (a -> Boolean) -> OSet a -> OSet a
+deleteWith f s@(OSet []) = s
+deleteWith f s@(OSet xs) = maybe s (\i -> OSet $ unsafePartial $ fromJust (A.deleteAt i xs)) (A.findIndex f xs)
 
 difference :: forall a. Eq a => OSet a -> OSet a -> OSet a
 difference (OSet xs) (OSet ys) = OSet $ A.difference xs ys
