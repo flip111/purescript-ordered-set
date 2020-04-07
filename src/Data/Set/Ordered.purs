@@ -129,6 +129,8 @@ import Data.Tuple (Tuple(Tuple))
 import Data.Unfoldable (class Unfoldable)
 import Partial.Unsafe (unsafePartial)
 import Prelude (($), (<<<), (<$>), (&&), (==), (/=))
+import Data.Argonaut.Encode (class EncodeJson)
+import Data.Argonaut.Decode (class DecodeJson)
 
 newtype OSet a = OSet (Array a)
 
@@ -159,6 +161,9 @@ instance foldableOSet :: Foldable OSet where
 -- instance traversableOSet :: Traversable (OSet a) where
 --   traverse f (OSet xs) = OSet <$> traverse f xs
 --   sequence (OSet xs) = OSet <$> sequence xs
+
+derive newtype instance encodeJsonOSet :: EncodeJson a => EncodeJson (OSet a)
+derive newtype instance decodeJsonOSet :: DecodeJson a => DecodeJson (OSet a)
 
 fromFoldable :: forall f. Foldable f => f ~> OSet
 fromFoldable = OSet <<< A.fromFoldable

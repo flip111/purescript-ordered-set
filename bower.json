@@ -1,7 +1,7 @@
 {
     "name": "purescript-ordered-set",
     "license": [
-        "AGPL-3.0-or-later"
+        "AGPL-3.0"
     ],
     "repository": {
         "type": "git",
@@ -14,11 +14,10 @@
         "output"
     ],
     "dependencies": {
+        "purescript-argonaut-codecs": "^v6.0.2",
         "purescript-arrays": "^v5.3.1",
-        "purescript-console": "^v4.4.0",
-        "purescript-effect": "^v2.0.1",
-        "purescript-nonempty": "^v5.0.0",
-        "purescript-psci-support": "^v4.0.0",
+        "purescript-partial": "^v2.0.1",
+        "purescript-prelude": "^v4.1.1",
         "purescript-unfoldable": "^v4.1.0"
     }
 }
