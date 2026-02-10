@@ -6,9 +6,10 @@
 -- |
 -- | For documentation of functions look in Data.Array
 -- |
--- | Help is appreciated for implementing the following functions and instances:
--- | * Functions: some, many, concatMap, group, group', groupBy, findMin, findMax, map
--- | * Instances: Apply, Bind, Traversable, Show, Ord, Monoid
+-- | Not implemented (and why):
+-- | * Apply, Bind, Traversable — require Functor, which is intentionally omitted (map is not structure-preserving)
+-- | * some, many — require Alternative + Lazy, not applicable to OSet
+-- | * group, group', groupBy — trivial for unique elements (every group is a singleton)
 module Data.Set.Ordered
   ( OSet
 
@@ -22,6 +23,8 @@ module Data.Set.Ordered
   , subset
   , properSubset
   , map
+  , findMin
+  , findMax
 
   , (..), range
   -- , some
@@ -56,7 +59,7 @@ module Data.Set.Ordered
 
   , reverse
   , concat
-  -- , concatMap
+  , concatMap
   , filter
   , partition
   , filterA
@@ -69,8 +72,10 @@ module Data.Set.Ordered
   , sortWith
   , slice
   , take
+  , takeEnd
   , takeWhile
   , drop
+  , dropEnd
   , dropWhile
   , span
   -- , group
@@ -104,23 +109,16 @@ module Data.Set.Ordered
 import Data.Foldable (foldl, foldr, foldMap, fold, intercalate, elem, notElem, find, findMap, any, all) as Exports
 import Data.Traversable (scanl, scanr) as Exports
 
--- unused for now
--- import Control.Alternative (class Alternative)
--- import Control.Apply (class Apply, apply)
--- import Control.Bind (class Bind)
--- import Control.Lazy (class Lazy)
--- import Data.Array.NonEmpty (NonEmptyArray)
--- import Data.NonEmpty (NonEmpty)
--- import Data.Traversable (class Traversable, traverse, sequence)
-
 import Control.Applicative (class Applicative)
 import Control.Monad (class Monad)
 import Control.Monad.Rec.Class (class MonadRec)
 import Data.Array as A
 import Data.Eq (class Eq)
-import Data.Foldable (class Foldable, foldr, foldl, foldMap)
+import Data.Foldable (class Foldable, foldr, foldl, foldMap, minimum, maximum)
+import Data.Show (class Show, show)
 import Data.Functor as F -- class Functor
 import Data.Maybe (Maybe, maybe, fromJust)
+import Data.Monoid (class Monoid)
 import Data.NaturalTransformation (type (~>))
 import Data.Ord (class Ord)
 import Data.Ordering (Ordering)
@@ -128,7 +126,7 @@ import Data.Semigroup (class Semigroup, append)
 import Data.Tuple (Tuple(Tuple))
 import Data.Unfoldable (class Unfoldable)
 import Partial.Unsafe (unsafePartial)
-import Prelude (($), (<<<), (<$>), (&&), (==), (/=))
+import Prelude (($), (<<<), (<$>), (<>), (&&), (==), (/=))
 import Data.Argonaut.Encode (class EncodeJson)
 import Data.Argonaut.Decode (class DecodeJson)
 
@@ -139,28 +137,21 @@ newtype OSet a = OSet (Array a)
 instance eqSet :: Eq a => Eq (OSet a) where
   eq (OSet m1) (OSet m2) = m1 == m2
 
--- https://pursuit.purescript.org/packages/purescript-prelude/4.1.1/docs/Control.Apply
--- instance applyOSet :: Eq a => Apply (OSet a) where
---   apply (OSet f) (OSet xs) = OSet $ A.nubEq $ apply f xs
-  
--- https://pursuit.purescript.org/packages/purescript-prelude/4.1.1/docs/Control.Bind
--- instance bindOSet :: Bind OSet where
---   bind (OSet xs) f = -- not sure how to implement this
+derive newtype instance ordOSet :: Ord a => Ord (OSet a)
 
--- https://pursuit.purescript.org/packages/purescript-prelude/4.1.1/docs/Data.Semigroup
+instance showOSet :: Show a => Show (OSet a) where
+  show (OSet xs) = "(OSet " <> show xs <> ")"
+
 instance semigroupOSet :: Eq a => Semigroup (OSet a) where
   append (OSet xs) (OSet ys) = OSet $ A.nubEq $ append xs ys
 
--- https://pursuit.purescript.org/packages/purescript-foldable-traversable/4.1.1/docs/Data.Foldable
+instance monoidOSet :: Eq a => Monoid (OSet a) where
+  mempty = empty
+
 instance foldableOSet :: Foldable OSet where
   foldr f x (OSet ys) = foldr f x ys
   foldl f x (OSet ys) = foldl f x ys
   foldMap f (OSet xs) = foldMap f xs
-
--- https://pursuit.purescript.org/packages/purescript-foldable-traversable/4.1.1/docs/Data.Traversable
--- instance traversableOSet :: Traversable (OSet a) where
---   traverse f (OSet xs) = OSet <$> traverse f xs
---   sequence (OSet xs) = OSet <$> sequence xs
 
 derive newtype instance encodeJsonOSet :: EncodeJson a => EncodeJson (OSet a)
 derive newtype instance decodeJsonOSet :: DecodeJson a => DecodeJson (OSet a)
@@ -187,12 +178,11 @@ singleton a = OSet [a]
 map :: forall a b. Ord b => (a -> b) -> OSet a -> OSet b
 map f = foldl (\m a -> insert (f a) m) empty
 
--- https://github.com/purescript/purescript-ordered-collections/blob/v1.6.1/src/Data/Set.purs#L132-L132
--- findMin :: forall a. Set a -> Maybe a
--- findMin (Set m) = Prelude.map _.key (M.findMin m)
+findMin :: forall a. Ord a => OSet a -> Maybe a
+findMin (OSet xs) = minimum xs
 
--- findMax :: forall a. Set a -> Maybe a
--- findMax (Set m) = Prelude.map _.key (M.findMax m)
+findMax :: forall a. Ord a => OSet a -> Maybe a
+findMax (OSet xs) = maximum xs
 
 subset :: forall a. Eq a => OSet a -> OSet a -> Boolean
 subset s1 s2 = isEmpty $ s1 `difference` s2
@@ -294,8 +284,8 @@ reverse (OSet xs) = OSet $ A.reverse xs
 concat :: forall a. Eq a => OSet (OSet a) -> OSet a
 concat (OSet xs) = OSet $ A.nubEq $ A.concat $ F.map (\(OSet xs') -> xs') xs
 
--- concatMap :: forall a b. (a -> OSet b) -> OSet a -> OSet b
--- concatMap f (OSet xs) = OSet $ A.concatMap f xs
+concatMap :: forall a b. Eq b => (a -> OSet b) -> OSet a -> OSet b
+concatMap f (OSet xs) = OSet $ A.nubEq $ A.concatMap (\x -> case f x of OSet ys -> ys) xs
 
 filter :: forall a. (a -> Boolean) -> OSet a -> OSet a
 filter f (OSet xs) = OSet $ A.filter f xs
@@ -376,7 +366,7 @@ delete x (OSet ys) = OSet $ A.delete x ys
 
 -- | Delete first element matching the predicate.
 deleteWith :: forall a. (a -> Boolean) -> OSet a -> OSet a
-deleteWith f s@(OSet []) = s
+deleteWith _ s@(OSet []) = s
 deleteWith f s@(OSet xs) = maybe s (\i -> OSet $ unsafePartial $ fromJust (A.deleteAt i xs)) (A.findIndex f xs)
 
 difference :: forall a. Eq a => OSet a -> OSet a -> OSet a

@@ -1,0 +1,22 @@
+package:
+  name: ordered-set
+  dependencies:
+    - argonaut-codecs
+    - arrays
+    - foldable-traversable
+    - maybe
+    - ordered-collections
+    - partial
+    - prelude
+    - tailrec
+    - tuples
+    - unfoldable
+  test:
+    main: Test.Main
+    dependencies:
+      - console
+      - effect
+
+workspace:
+  packageSet:
+    registry: 73.0.0
