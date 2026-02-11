@@ -19,8 +19,20 @@ package:
   test:
     main: Test.Main
     dependencies:
+      - aff
+      - argonaut-codecs
+      - arrays
       - console
       - effect
+      - either
+      - foldable-traversable
+      - maybe
+      - prelude
+      - quickcheck
+      - quickcheck-laws
+      - spec
+      - spec-quickcheck
+      - tuples
 
 workspace:
   packageSet:

@@ -297,14 +297,14 @@ partition f (OSet xs) = g $ A.partition f xs
 filterA :: forall a f. Applicative f => (a -> f Boolean) -> OSet a -> f (OSet a)
 filterA f (OSet xs) = OSet <$> A.filterA f xs
 
-mapMaybe :: forall a b. (a -> Maybe b) -> OSet a -> OSet b
-mapMaybe f (OSet xs) = OSet $ A.mapMaybe f xs
+mapMaybe :: forall a b. Eq b => (a -> Maybe b) -> OSet a -> OSet b
+mapMaybe f (OSet xs) = OSet $ A.nubEq $ A.mapMaybe f xs
 
 catMaybes :: forall a. OSet (Maybe a) -> OSet a
 catMaybes (OSet xs) = OSet $ A.catMaybes xs
 
-mapWithIndex :: forall a b. (Int -> a -> b) -> OSet a -> OSet b
-mapWithIndex f (OSet xs) = OSet $ A.mapWithIndex f xs
+mapWithIndex :: forall a b. Eq b => (Int -> a -> b) -> OSet a -> OSet b
+mapWithIndex f (OSet xs) = OSet $ A.nubEq $ A.mapWithIndex f xs
 
 sort :: forall a. Ord a => OSet a -> OSet a
 sort (OSet xs) = OSet $ A.sort xs
