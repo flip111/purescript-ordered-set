@@ -2,7 +2,7 @@ package:
   name: ordered-set
   publish:
     version: 0.5.1
-    license: AGPL-3.0-or-later
+    license: AGPL-3.0-only
     location:
       githubOwner: flip111
       githubRepo: purescript-ordered-set
