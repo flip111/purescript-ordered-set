@@ -1,7 +1,7 @@
 package:
   name: ordered-set
   publish:
-    version: 0.5.1
+    version: 0.5.3
     license: AGPL-3.0-only
     location:
       githubOwner: flip111
