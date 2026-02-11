@@ -1,16 +1,21 @@
 package:
   name: ordered-set
+  publish:
+    version: 0.5.0
+    license: AGPL-3.0-or-later
+    location:
+      githubOwner: flip111
+      githubRepo: purescript-ordered-set
   dependencies:
-    - argonaut-codecs
-    - arrays
-    - foldable-traversable
-    - maybe
-    - ordered-collections
-    - partial
-    - prelude
-    - tailrec
-    - tuples
-    - unfoldable
+    - argonaut-codecs: ">=9.1.0 <10.0.0"
+    - arrays: ">=7.3.0 <8.0.0"
+    - foldable-traversable: ">=6.0.0 <7.0.0"
+    - maybe: ">=6.0.0 <7.0.0"
+    - partial: ">=4.0.0 <5.0.0"
+    - prelude: ">=6.0.2 <7.0.0"
+    - tailrec: ">=6.1.0 <7.0.0"
+    - tuples: ">=7.0.0 <8.0.0"
+    - unfoldable: ">=6.0.0 <7.0.0"
   test:
     main: Test.Main
     dependencies:
